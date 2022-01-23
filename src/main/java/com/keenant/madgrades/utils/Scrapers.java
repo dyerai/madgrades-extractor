@@ -41,7 +41,12 @@ public class Scrapers {
         }
         Map<Integer, String> result = new HashMap<>();
         for (File pdfPath : dirReportPath.listFiles()) {
-            int termCode = Integer.parseInt(pdfPath.getName().split("-")[0]);
+            // check if name is seperated by '-' or '_'
+            String splitRegex = "-";
+            if (pdfPath.getName().contains("_")) {
+                splitRegex = "_";
+            }
+            int termCode = Integer.parseInt(pdfPath.getName().split(splitRegex)[0]);
             result.put(termCode, pdfPath.getAbsolutePath());
         }
         return result;
@@ -54,9 +59,46 @@ public class Scrapers {
         }
         Map<Integer, String> result = new HashMap<>();
         for (File pdfPath : gradeReportPath.listFiles()) {
-            int termCode = Integer.parseInt(pdfPath.getName().split("-")[0]);
+            int termCode = parseTermCode(pdfPath.getName());
             result.put(termCode, pdfPath.getAbsolutePath());
         }
         return result;
+    }
+
+    private static int parseTermCode(String fileName) {
+        // figure out term code according to https://data.wisc.edu/infoaccess/available-data-views/uw-madison-student-administration/enrolled-student/stdnt-term-codes/
+        // The term code is derived as follows:
+        // Character 1 = Century (0 = 1900 and 1 = 2000)
+        // Character 2 & 3 = Academic Year
+        // Character 4 = Term ( 2=Fall, 4=Spring and 6=Summer)
+
+        StringBuilder s = new StringBuilder(4);
+        String splitName = (fileName.split("-")[2] += fileName.split("-")[3])
+            .replace(".pdf", "");
+
+        // get first number in term code
+        if (splitName.charAt(0) == '2') {
+            s.append('1');
+        }
+        else if (splitName.charAt(0) == '1') {
+            s.append('0');
+        }
+
+        // get last number in term code
+        char last = '6';
+        if (splitName.contains("fall")) {
+            last = '2';
+            splitName = splitName.replace("fall", "");
+        }
+        else if (splitName.contains("spring")) {
+            last = '4';
+            splitName = splitName.replace("spring", "");
+        }
+
+        // get characters 2 & 3
+        s.append(splitName.substring(splitName.length() - 2));
+        s.append(last);
+
+        return Integer.parseInt(s.toString());
     }
 }
